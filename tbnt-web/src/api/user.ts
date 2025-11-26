@@ -42,17 +42,20 @@ export const getMe = () => {
   return request.get<User>('/auth/me')
 }
 
-// Keep the old user methods if needed, but they seem to be for demo
-export interface UserInfo {
-  id: number
-  name: string
-  email: string
+export const updateProfile = (data: { nickname: string; avatar?: string; phone?: string }) => {
+  return request.put<User>('/auth/profile', data)
 }
 
-export const getUserInfo = (id: number) => {
-  return request.get<UserInfo>(`/users/${id}`)
+export const updatePassword = (data: { old_password: string; new_password: string }) => {
+  return request.put<{ message: string }>('/auth/password', data)
 }
 
-export const createUser = (data: Omit<UserInfo, 'id'>) => {
-  return request.post<UserInfo>('/users', data)
+export const uploadAvatar = (file: File) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<{ url: string }>('/auth/upload-avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
 }

@@ -3,6 +3,7 @@ import { useRoute } from 'vue-router'
 import {
   Odometer,
   Setting,
+  Calendar,
 } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 
@@ -33,6 +34,11 @@ const activeMenu = computed(() => route.path)
     <el-menu-item index="/">
       <el-icon><Odometer /></el-icon>
       <template #title>仪表盘</template>
+    </el-menu-item>
+
+    <el-menu-item index="/history">
+      <el-icon><Calendar /></el-icon>
+      <template #title>工作记录</template>
     </el-menu-item>
 
     <el-menu-item index="/settings">

@@ -27,3 +27,15 @@ class WorkItem(Base):
 
     # Relationship
     user = relationship("User", backref="work_items")
+
+class WorkRecord(Base):
+    __tablename__ = "work_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    clock_in_time = Column(String, nullable=True) # Created time / Start work
+    clock_out_time = Column(String, nullable=True) # Daily clock out time
+    date = Column(String, index=True) # Format: YYYY-MM-DD
+    
+    # Relationship
+    user = relationship("User", backref="work_records")

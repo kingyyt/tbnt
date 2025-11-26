@@ -1,9 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import Layout from '@/layout/index.vue'
-import HomeView from '@/views/HomeView.vue'
-import LoginView from '@/views/LoginView.vue'
-import WorkSettingsView from '@/views/WorkSettingsView.vue'
+import HomeView from '@/views/dashboard/index.vue'
+import LoginView from '@/views/auth/index.vue'
+import WorkSettingsView from '@/views/work/SettingsView.vue'
+import WorkHistoryView from '@/views/work/HistoryView.vue'
+import ProfileView from '@/views/profile/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,9 +21,19 @@ const router = createRouter({
           component: HomeView
         },
         {
+          path: 'history',
+          name: 'history',
+          component: WorkHistoryView
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: WorkSettingsView
+        },
+        {
+          path: 'profile',
+          name: 'profile',
+          component: ProfileView
         }
       ]
     },

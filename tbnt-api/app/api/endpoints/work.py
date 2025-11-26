@@ -1,15 +1,17 @@
 from typing import List, Any
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.api import deps
-from app.models.work import WorkSettings, WorkItem
+from app.models.work import WorkSettings, WorkItem, WorkRecord
 from app.schemas.work import (
     WorkSettings as WorkSettingsSchema,
     WorkSettingsCreate,
     WorkSettingsUpdate,
     WorkItem as WorkItemSchema,
     WorkItemCreate,
-    WorkItemUpdate
+    WorkItemUpdate,
+    WorkRecord as WorkRecordSchema
 )
 from app.models.user import User
 
@@ -124,3 +126,65 @@ def delete_work_item(
     db.delete(item)
     db.commit()
     return item
+
+# --- Work Records ---
+
+@router.post("/clock-out", response_model=WorkRecordSchema)
+def clock_out(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user)
+) -> Any:
+    """
+    Clock out for the day. Can be called multiple times, will update the latest record or create new one if needed.
+    """
+    china_tz = timezone(timedelta(hours=8))
+    now = datetime.now(china_tz)
+    today = now.strftime("%Y-%m-%d")
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Check if there is already a record for today
+    record = db.query(WorkRecord).filter(
+        WorkRecord.user_id == current_user.id,
+        WorkRecord.date == today
+    ).first()
+
+    if not record:
+        record = WorkRecord(
+            user_id=current_user.id,
+            date=today,
+            clock_in_time=now_str, 
+            clock_out_time=now_str
+        )
+        db.add(record)
+    else:
+        record.clock_out_time = now_str
+    
+    db.commit()
+    db.refresh(record)
+    return record
+
+@router.get("/records/today", response_model=WorkRecordSchema | None)
+def get_today_work_record(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user)
+) -> Any:
+    """
+    Get today's work record. Returns None if no record found.
+    """
+    china_tz = timezone(timedelta(hours=8))
+    today = datetime.now(china_tz).strftime("%Y-%m-%d")
+    record = db.query(WorkRecord).filter(
+        WorkRecord.user_id == current_user.id,
+        WorkRecord.date == today
+    ).first()
+    return record
+
+@router.get("/records", response_model=List[WorkRecordSchema])
+def get_work_records(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user)
+) -> Any:
+    """
+    Get work history records.
+    """
+    return db.query(WorkRecord).filter(WorkRecord.user_id == current_user.id).order_by(WorkRecord.date.desc()).all()

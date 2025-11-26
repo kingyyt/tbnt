@@ -25,3 +25,12 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     user: User
+
+class UserUpdate(BaseModel):
+    nickname: str
+    avatar: Optional[str] = None
+    phone: Optional[str] = None
+
+class PasswordUpdate(BaseModel):
+    old_password: str
+    new_password: str

@@ -62,9 +62,12 @@ const handleLogout = () => {
       <ThemeSwitch />
 
       <!-- User Profile -->
-      <div class="flex items-center space-x-2 text-gray-700 dark:text-gray-200 ml-2">
-        <el-avatar :size="32" :src="authStore.user?.avatar || ''" class="bg-blue-100 text-blue-600">
-          {{ authStore.user?.username?.charAt(0).toUpperCase() }}
+      <div
+        class="flex items-center space-x-2 text-gray-700 dark:text-gray-200 ml-2 cursor-pointer hover:opacity-80 transition-opacity"
+        @click="router.push('/profile')"
+      >
+        <el-avatar :size="32" :src="authStore.user?.avatar ? `http://localhost:8000${authStore.user.avatar}` : ''" class="bg-blue-100 text-blue-600">
+          {{ authStore.user?.nickname?.charAt(0) || authStore.user?.username?.charAt(0) }}
         </el-avatar>
         <span class="hidden md:inline font-medium text-sm">{{ authStore.user?.nickname || authStore.user?.username }}</span>
       </div>

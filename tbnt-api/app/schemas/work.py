@@ -42,3 +42,19 @@ class WorkItem(WorkItemBase):
 
     class Config:
         from_attributes = True
+
+# Work Record Schemas
+class WorkRecordBase(BaseModel):
+    date: str
+    clock_in_time: Optional[str] = None
+    clock_out_time: Optional[str] = None
+
+class WorkRecordCreate(BaseModel):
+    pass
+
+class WorkRecord(WorkRecordBase):
+    id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True

@@ -28,7 +28,11 @@ export const useAuthStore = defineStore('auth', () => {
     // Redirect handled in component or router usually, but resetting state here
   }
 
-  return { token, user, login, logout }
+  const setUser = (userInfo: User) => {
+    user.value = userInfo
+  }
+
+  return { token, user, login, logout, setUser }
 }, {
   persist: true
 })
