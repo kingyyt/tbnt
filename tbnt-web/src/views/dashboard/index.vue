@@ -4,7 +4,7 @@ import { getWorkSettings, getWorkItems, createWorkItem, updateWorkItem, deleteWo
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Delete, Checked, Memo, Timer } from '@element-plus/icons-vue'
+import { Plus, Delete, Checked, Memo, Timer, CircleCheck, RefreshLeft } from '@element-plus/icons-vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -223,7 +223,17 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div>
+    <!-- Overtime Alert Overlay -->
+    <div
+      v-if="workStatus === 'overtime'"
+      class="fixed inset-0 z-50 pointer-events-none flex items-center justify-center overflow-hidden"
+    >
+       <div class="absolute inset-0 border-[20px] border-red-500/50 animate-pulse shadow-[inset_0_0_100px_rgba(239,68,68,0.5)]"></div>
+       <div class="absolute inset-0 bg-red-900/10 animate-pulse"></div>
+    </div>
+
+    <div class="space-y-6">
     <!-- Header Banner -->
     <div
       class="rounded-2xl p-8 text-white shadow-xl relative overflow-hidden transition-all duration-1000"
@@ -318,24 +328,28 @@ onUnmounted(() => {
 
         <ul class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
           <li v-for="item in memos" :key="item.id" class="flex items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg group hover:shadow-sm transition-shadow">
-            <el-checkbox
-              :model-value="item.status === 'done'"
-              @change="toggleItemStatus(item)"
-              class="mr-3"
-            />
             <span
-              class="flex-1 text-gray-700 dark:text-gray-200 transition-all"
+              class="flex-1 text-gray-700 dark:text-gray-200 transition-all cursor-pointer"
               :class="{ 'line-through text-gray-400 dark:text-gray-500': item.status === 'done' }"
+              @click="toggleItemStatus(item)"
             >
               {{ item.content }}
             </span>
-            <el-button
-              type="danger"
-              link
-              :icon="Delete"
-              class="opacity-0 group-hover:opacity-100 transition-opacity"
-              @click="removeWorkItem(item.id, 'memo')"
-            />
+            <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <el-button
+                :type="item.status === 'done' ? 'warning' : 'success'"
+                link
+                :icon="item.status === 'done' ? RefreshLeft : CircleCheck"
+                @click="toggleItemStatus(item)"
+                :title="item.status === 'done' ? '标记为未完成' : '标记为完成'"
+              />
+              <el-button
+                type="danger"
+                link
+                :icon="Delete"
+                @click="removeWorkItem(item.id, 'memo')"
+              />
+            </div>
           </li>
           <li v-if="memos.length === 0" class="text-center text-gray-400 py-4">暂无备忘</li>
         </ul>
@@ -361,29 +375,34 @@ onUnmounted(() => {
 
         <ul class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
            <li v-for="item in plans" :key="item.id" class="flex items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg group hover:shadow-sm transition-shadow">
-            <el-checkbox
-              :model-value="item.status === 'done'"
-              @change="toggleItemStatus(item)"
-              class="mr-3"
-            />
             <span
-              class="flex-1 text-gray-700 dark:text-gray-200 transition-all"
+              class="flex-1 text-gray-700 dark:text-gray-200 transition-all cursor-pointer"
                :class="{ 'line-through text-gray-400 dark:text-gray-500': item.status === 'done' }"
+               @click="toggleItemStatus(item)"
             >
               {{ item.content }}
             </span>
-            <el-button
-              type="danger"
-              link
-              :icon="Delete"
-              class="opacity-0 group-hover:opacity-100 transition-opacity"
-              @click="removeWorkItem(item.id, 'plan')"
-            />
+            <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <el-button
+                :type="item.status === 'done' ? 'warning' : 'success'"
+                link
+                :icon="item.status === 'done' ? RefreshLeft : CircleCheck"
+                @click="toggleItemStatus(item)"
+                :title="item.status === 'done' ? '标记为未完成' : '标记为完成'"
+              />
+              <el-button
+                type="danger"
+                link
+                :icon="Delete"
+                @click="removeWorkItem(item.id, 'plan')"
+              />
+            </div>
           </li>
           <li v-if="plans.length === 0" class="text-center text-gray-400 py-4">暂无计划</li>
         </ul>
       </div>
     </div>
+  </div>
   </div>
 </template>
 

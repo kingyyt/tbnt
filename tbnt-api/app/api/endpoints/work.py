@@ -149,10 +149,22 @@ def clock_out(
     ).first()
 
     if not record:
+        # Get user settings for start time
+        settings = db.query(WorkSettings).filter(WorkSettings.user_id == current_user.id).first()
+        start_time_str = "09:00:00"
+        if settings and settings.start_time:
+            # Ensure format is HH:MM:SS
+            if len(settings.start_time) == 5:
+                start_time_str = f"{settings.start_time}:00"
+            else:
+                start_time_str = settings.start_time
+
+        clock_in_str = f"{today} {start_time_str}"
+
         record = WorkRecord(
             user_id=current_user.id,
             date=today,
-            clock_in_time=now_str, 
+            clock_in_time=clock_in_str, 
             clock_out_time=now_str
         )
         db.add(record)
