@@ -1,7 +1,11 @@
 from typing import List, Any
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
+import shutil
+import os
+import uuid
+import json
 
 from app.db.repository import get_db
 from app.api import deps
@@ -45,6 +49,33 @@ def get_chat_history(
     # but for chat we usually want to load "latest 50" and show them bottom-up.
     return messages[::-1] # Return in chronological order
 
+@router.post("/upload", response_model=dict)
+def upload_chat_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(deps.get_current_active_user)
+):
+    """
+    Upload an image for chat.
+    """
+    # Ensure directory exists
+    upload_dir = "/Users/edric/Desktop/react/tbnt-api/data/image"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Generate unique filename
+    file_ext = os.path.splitext(file.filename)[1]
+    if not file_ext:
+        file_ext = ".png" # Default to png if no extension
+        
+    filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(upload_dir, filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    # Return URL
+    return {"url": f"/static/{filename}"}
+
+
 @router.websocket("/ws/{token}")
 async def websocket_endpoint(websocket: WebSocket, token: str, db: Session = Depends(get_db)):
     # Verify token
@@ -72,7 +103,17 @@ async def websocket_endpoint(websocket: WebSocket, token: str, db: Session = Dep
     await manager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
+            data_str = await websocket.receive_text()
+            
+            # Parse data (could be simple text or JSON with type)
+            try:
+                data_json = json.loads(data_str)
+                content = data_json.get("content", "")
+                message_type = data_json.get("type", "text")
+            except json.JSONDecodeError:
+                # Backward compatibility or simple text
+                content = data_str
+                message_type = "text"
             
             # Save message
             china_tz = timezone(timedelta(hours=8))
@@ -81,7 +122,8 @@ async def websocket_endpoint(websocket: WebSocket, token: str, db: Session = Dep
             
             message = ChatMessage(
                 user_id=user.id,
-                content=data,
+                content=content,
+                message_type=message_type,
                 created_at=now_str
             )
             db.add(message)
@@ -92,6 +134,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str, db: Session = Dep
             response = {
                 "id": message.id,
                 "content": message.content,
+                "message_type": message.message_type,
                 "created_at": message.created_at,
                 "user_id": user.id,
                 "sender": {
