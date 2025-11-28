@@ -8,6 +8,7 @@ class UserBase(BaseModel):
     avatar: Optional[str] = None
     phone: Optional[str] = None
     role_level: int = 5
+    chat_color: Optional[str] = None # Random color for chat bubble
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):

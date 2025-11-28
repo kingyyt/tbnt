@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 import shutil
 import os
 import uuid
+import random
 
 from app.db.repository import get_db
 from app.models.user import User as UserModel
@@ -12,6 +13,9 @@ from app.core import security
 from app.api import deps
 
 router = APIRouter()
+
+def generate_random_color():
+    return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
 @router.post("/register", response_model=user_schema.User)
 def register(user_in: user_schema.UserCreate, db: Session = Depends(get_db)):
@@ -29,6 +33,7 @@ def register(user_in: user_schema.UserCreate, db: Session = Depends(get_db)):
         phone=user_in.phone,
         role_level=user_in.role_level if user_in.role_level is not None else 5,
         hashed_password=security.get_password_hash(user_in.password),
+        chat_color=generate_random_color()
     )
     db.add(user)
     db.commit()

@@ -13,3 +13,4 @@ class User(Base):
     phone = Column(String, nullable=True)
     role_level = Column(Integer, default=5)
     is_active = Column(Boolean, default=True)
+    chat_color = Column(String, default="#3b82f6") # Default blue, but should be random on creation

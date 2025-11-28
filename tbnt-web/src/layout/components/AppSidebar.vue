@@ -4,6 +4,7 @@ import {
   Odometer,
   Setting,
   Calendar,
+  ChatDotRound
 } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 
@@ -46,6 +47,10 @@ const activeMenu = computed(() => route.path)
       <template #title>工作配置</template>
     </el-menu-item>
 
+    <el-menu-item index="/lobby">
+      <el-icon><ChatDotRound /></el-icon>
+      <template #title>大厅</template>
+    </el-menu-item>
   </el-menu>
 </template>
 

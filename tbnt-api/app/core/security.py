@@ -2,7 +2,11 @@ from datetime import datetime, timedelta
 from typing import Optional, Union, Any
 from jose import jwt
 from passlib.context import CryptContext
+from pydantic import BaseModel
 from app.core.config import settings
+
+class TokenPayload(BaseModel):
+    sub: Optional[str] = None
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -21,3 +25,10 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+def verify_token(token: str) -> TokenPayload:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return TokenPayload(**payload)
+    except Exception:
+        return TokenPayload()

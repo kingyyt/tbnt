@@ -227,10 +227,8 @@ onUnmounted(() => {
     <!-- Overtime Alert Overlay -->
     <div
       v-if="workStatus === 'overtime'"
-      class="fixed inset-0 z-50 pointer-events-none flex items-center justify-center overflow-hidden"
+      class="fixed inset-0 z-50 pointer-events-none flex items-center justify-center overflow-hidden animate-shadow-breathe"
     >
-       <div class="absolute inset-0 border-[20px] border-red-500/50 animate-pulse shadow-[inset_0_0_100px_rgba(239,68,68,0.5)]"></div>
-       <div class="absolute inset-0 bg-red-900/10 animate-pulse"></div>
     </div>
 
     <div class="space-y-6">
@@ -423,7 +421,16 @@ onUnmounted(() => {
   50% { transform: scale(1.1); }
 }
 
+@keyframes shadow-breathe {
+  0%, 100% { box-shadow: inset 0 0 30px 10px rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: inset 0 0 80px 30px rgba(239, 68, 68, 0.6); }
+}
+
 .animate-breathe {
   animation: breathe 2s infinite ease-in-out;
+}
+
+.animate-shadow-breathe {
+  animation: shadow-breathe 2s infinite ease-in-out;
 }
 </style>
