@@ -1,29 +1,100 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { ref, onMounted, nextTick, watch } from 'vue'
+import { useAuthStore, type User } from '@/stores/auth'
+import { useFriendStore } from '@/stores/friend'
+import { useChatStore } from '@/stores/chat'
 import { Promotion, Picture } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import UserContextMenu from '@/components/UserContextMenu.vue'
+import { useRouter } from 'vue-router'
+import { uploadImage, getLobbyHistory } from '@/api/chat'
+import { getImageUrl } from '@/utils/image'
+
+defineOptions({
+  name: 'LobbyView'
+})
 
 const authStore = useAuthStore()
-const messages = ref<any[]>([])
+const friendStore = useFriendStore()
+const chatStore = useChatStore()
+const router = useRouter()
+
 const inputMessage = ref('')
-const ws = ref<WebSocket | null>(null)
 const messagesContainer = ref<HTMLElement | null>(null)
-const isConnected = ref(false)
 const isLoadingHistory = ref(false)
 const hasMoreHistory = ref(true)
 const pageSize = 50
+
+const contextMenu = ref<{
+  visible: boolean
+  x: number
+  y: number
+  user: User | null
+  isFriend: boolean
+}>({
+  visible: false,
+  x: 0,
+  y: 0,
+  user: null,
+  isFriend: false
+})
 
 // Contrast Color Helper
 const getContrastColor = (hexcolor: string) => {
   if (!hexcolor) return 'black'
   // Remove # if present
   hexcolor = hexcolor.replace('#', '')
-  const r = parseInt(hexcolor.substr(0, 2), 16)
-  const g = parseInt(hexcolor.substr(2, 2), 16)
-  const b = parseInt(hexcolor.substr(4, 2), 16)
+  const r = parseInt(hexcolor.substring(0, 2), 16)
+  const g = parseInt(hexcolor.substring(2, 2), 16)
+  const b = parseInt(hexcolor.substring(4, 2), 16)
   const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000
   return yiq >= 128 ? 'black' : 'white'
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const handleContextMenu = (event: MouseEvent, user?: any) => {
+  if (!user) return
+  event.preventDefault()
+  // Don't show for self
+  if (user.id === authStore.user?.id) return
+
+  // Check if already friend
+  const isFriend = friendStore.friends.some(f => f.friend_info.id === user.id)
+
+  contextMenu.value = {
+    visible: true,
+    x: event.clientX,
+    y: event.clientY,
+    user,
+    isFriend
+  }
+}
+
+const handleAddFriend = async (user: User) => {
+  contextMenu.value.visible = false
+  try {
+    await ElMessageBox.confirm(`确定要添加 ${user.nickname || user.username} (ID: ${user.number}) 为好友吗?`, '添加好友', {
+      confirmButtonText: '发送申请',
+      cancelButtonText: '取消',
+      type: 'info'
+    })
+
+    if (user.number !== undefined) {
+      await friendStore.sendRequest(user.number)
+      ElMessage.success('好友申请已发送')
+    } else {
+      ElMessage.error('无法获取用户ID')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error)
+    }
+  }
+}
+
+const handlePrivateMessage = (user: User) => {
+  contextMenu.value.visible = false
+  router.push({ name: 'friends', query: { userId: user.id } })
 }
 
 const scrollToBottom = async () => {
@@ -33,42 +104,8 @@ const scrollToBottom = async () => {
   }
 }
 
-const connectWebSocket = () => {
-  if (!authStore.token) return
-
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const wsUrl = `${protocol}//localhost:8000/api/v1/chat/ws/${authStore.token}`
-
-  ws.value = new WebSocket(wsUrl)
-
-  ws.value.onopen = () => {
-    isConnected.value = true
-    console.log('Connected to chat')
-  }
-
-  ws.value.onmessage = (event) => {
-    const message = JSON.parse(event.data)
-    messages.value.push(message)
-    scrollToBottom()
-  }
-
-  ws.value.onclose = () => {
-    isConnected.value = false
-    console.log('Disconnected from chat')
-    // Reconnect logic could be added here
-  }
-}
-
 const sendMessage = (content: string, type: string = 'text') => {
-  if (!ws.value || ws.value.readyState !== WebSocket.OPEN) return
-
-  const payload = JSON.stringify({
-    content: content,
-    type: type
-  })
-
-  ws.value.send(payload)
-
+  chatStore.sendMessage(content, type)
   if (type === 'text') {
     inputMessage.value = ''
   }
@@ -80,21 +117,8 @@ const sendTextMessage = () => {
 }
 
 const handleImageUpload = async (file: File) => {
-  const formData = new FormData()
-  formData.append('file', file)
-
   try {
-    const res = await fetch('http://localhost:8000/api/v1/chat/upload', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: formData
-    })
-
-    if (!res.ok) throw new Error('Upload failed')
-
-    const data = await res.json()
+    const data = await uploadImage(file)
     if (data.url) {
       sendMessage(data.url, 'image')
     }
@@ -110,13 +134,8 @@ const fetchHistory = async (isLoadMore = false) => {
 
   isLoadingHistory.value = true
   try {
-    const skip = isLoadMore ? messages.value.length : 0
-    const res = await fetch(`http://localhost:8000/api/v1/chat/history?skip=${skip}&limit=${pageSize}`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-    const data = await res.json()
+    const skip = isLoadMore ? chatStore.lobbyMessages.length : 0
+    const data = await getLobbyHistory(skip, pageSize)
     if (Array.isArray(data)) {
       if (data.length < pageSize) {
         hasMoreHistory.value = false
@@ -125,7 +144,7 @@ const fetchHistory = async (isLoadMore = false) => {
       if (isLoadMore) {
         // Prepend messages
         const currentScrollHeight = messagesContainer.value?.scrollHeight || 0
-        messages.value = [...data, ...messages.value]
+        chatStore.prependLobbyHistory(data)
 
         // Restore scroll position
         await nextTick()
@@ -133,7 +152,7 @@ const fetchHistory = async (isLoadMore = false) => {
           messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight - currentScrollHeight
         }
       } else {
-        messages.value = data
+        chatStore.setLobbyHistory(data)
         scrollToBottom()
       }
     }
@@ -152,16 +171,38 @@ const handleScroll = () => {
   }
 }
 
-onMounted(() => {
-  fetchHistory()
-  connectWebSocket()
+// Watch for new messages to scroll to bottom
+watch(() => chatStore.lobbyMessages.length, (newLen, oldLen) => {
+    // Only scroll to bottom if we added a new message (not loading history)
+    // However, our fetchHistory handles scroll position for history loading.
+    // So we should only scroll if it's an append (new message).
+    // But simpler logic: if difference is 1 (one new message), scroll to bottom.
+    // If we are at the bottom, stay at bottom.
+
+    if (newLen > oldLen) {
+        const isAtBottom = messagesContainer.value ?
+            (messagesContainer.value.scrollHeight - messagesContainer.value.scrollTop - messagesContainer.value.clientHeight < 50)
+            : false
+
+        if (isAtBottom || newLen - oldLen === 1) {
+             scrollToBottom()
+        }
+    }
 })
 
-onUnmounted(() => {
-  if (ws.value) {
-    ws.value.close()
+onMounted(() => {
+  // Ensure connected
+  if (!chatStore.isConnected) {
+      chatStore.connect()
+  }
+
+  if (chatStore.lobbyMessages.length === 0) {
+      fetchHistory()
+  } else {
+      scrollToBottom()
   }
 })
+
 </script>
 
 <template>
@@ -169,10 +210,10 @@ onUnmounted(() => {
     <!-- Chat Header -->
     <div class="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm z-10">
       <h2 class="text-lg font-bold text-gray-800 dark:text-white flex items-center">
-        <span class="w-2 h-2 rounded-full mr-2" :class="isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'"></span>
+        <span class="w-2 h-2 rounded-full mr-2" :class="chatStore.isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'"></span>
         大厅聊天
       </h2>
-      <span class="text-xs text-gray-500">{{ isConnected ? '在线' : '离线' }}</span>
+      <span class="text-xs text-gray-500">{{ chatStore.isConnected ? '在线' : '离线' }}</span>
     </div>
 
     <!-- Messages Area -->
@@ -187,7 +228,7 @@ onUnmounted(() => {
 
       <TransitionGroup name="message">
         <div
-          v-for="msg in messages"
+          v-for="msg in chatStore.lobbyMessages"
           :key="msg.id"
           class="flex w-full"
           :class="msg.user_id === authStore.user?.id ? 'justify-end' : 'justify-start'"
@@ -196,8 +237,9 @@ onUnmounted(() => {
           <el-avatar
             v-if="msg.user_id !== authStore.user?.id"
             :size="36"
-            :src="msg.sender?.avatar ? `http://localhost:8000${msg.sender.avatar}` : ''"
-            class="mr-2 flex-shrink-0"
+            :src="getImageUrl(msg.sender?.avatar)"
+            class="mr-2 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+            @contextmenu.prevent.stop="handleContextMenu($event, msg.sender)"
           >
             {{ msg.sender?.nickname?.charAt(0) || msg.sender?.username?.charAt(0) }}
           </el-avatar>
@@ -224,10 +266,11 @@ onUnmounted(() => {
               class="rounded-xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700"
             >
               <el-image
-                :src="msg.content.startsWith('/') ? `http://localhost:8000${msg.content}` : msg.content"
-                :preview-src-list="[msg.content.startsWith('/') ? `http://localhost:8000${msg.content}` : msg.content]"
+                :src="getImageUrl(msg.content)"
+                :preview-src-list="[getImageUrl(msg.content)]"
                 fit="cover"
                 class="max-w-[200px] max-h-[200px]"
+                @load="scrollToBottom"
               />
             </div>
 
@@ -240,8 +283,8 @@ onUnmounted(() => {
           <el-avatar
             v-if="msg.user_id === authStore.user?.id"
             :size="36"
-            :src="authStore.user?.avatar ? `http://localhost:8000${authStore.user.avatar}` : ''"
-            class="ml-2 flex-shrink-0"
+            :src="getImageUrl(authStore.user?.avatar)"
+            class="ml-2 shrink-0"
           >
             {{ authStore.user?.nickname?.charAt(0) || authStore.user?.username?.charAt(0) }}
           </el-avatar>
@@ -263,7 +306,7 @@ onUnmounted(() => {
           <el-button
             circle
             :icon="Picture"
-            class="!border-none !bg-transparent text-gray-500 hover:text-blue-500"
+            class="border-none! bg-transparent! text-gray-500 hover:text-blue-500"
           />
         </el-upload>
 
@@ -273,14 +316,14 @@ onUnmounted(() => {
           :autosize="{ minRows: 1, maxRows: 4 }"
           placeholder="发送消息..."
           resize="none"
-          class="flex-1 !bg-transparent custom-input"
+          class="flex-1 bg-transparent! custom-input"
           @keyup.enter.exact.prevent="sendTextMessage"
         />
         <el-button
           type="primary"
           circle
           :icon="Promotion"
-          :disabled="!inputMessage.trim() || !isConnected"
+          :disabled="!inputMessage.trim() || !chatStore.isConnected"
           @click="sendTextMessage"
           class="mb-0.5 shadow-lg hover:scale-105 transition-transform"
         />
@@ -289,6 +332,17 @@ onUnmounted(() => {
         Enter 发送
       </div>
     </div>
+
+    <!-- User Context Menu -->
+    <UserContextMenu
+      v-model:visible="contextMenu.visible"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      :user="contextMenu.user"
+      :is-friend="contextMenu.isFriend"
+      @add-friend="handleAddFriend"
+      @send-message="handlePrivateMessage"
+    />
   </div>
 </template>
 
@@ -333,5 +387,6 @@ onUnmounted(() => {
 :deep(.el-textarea__inner:hover),
 :deep(.el-textarea__inner:focus) {
   box-shadow: none !important;
+
 }
 </style>

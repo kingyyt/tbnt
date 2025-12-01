@@ -10,6 +10,8 @@ export interface User {
   phone: string | null
   role_level: number
   is_active: boolean
+  chat_color?: string
+  number?: number
 }
 
 export const useAuthStore = defineStore('auth', () => {

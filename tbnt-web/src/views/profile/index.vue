@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { updateProfile, updatePassword, uploadAvatar } from '@/api/user'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { getImageUrl } from '@/utils/image'
+import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import type { UploadFile } from 'element-plus'
+
+defineOptions({
+  name: 'ProfileView'
+})
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -25,7 +30,7 @@ const passwordDialogVisible = ref(false)
 
 const handleAvatarChange = async (uploadFile: UploadFile) => {
   if (!uploadFile.raw) return
-  
+
   const isJPG = uploadFile.raw.type === 'image/jpeg' || uploadFile.raw.type === 'image/png'
   const isLt2M = uploadFile.raw.size / 1024 / 1024 < 2
 
@@ -46,7 +51,7 @@ const handleAvatarChange = async (uploadFile: UploadFile) => {
     // For now, let's just save what backend returns.
     profileForm.value.avatar = res.url
     await handleUpdateProfile() // Auto save after upload
-  } catch (error: any) {
+  } catch (error) {
     console.error(error)
   }
 }
@@ -61,7 +66,7 @@ const handleUpdateProfile = async () => {
     })
     authStore.setUser(user)
     ElMessage.success('个人信息更新成功')
-  } catch (error: any) {
+  } catch (error) {
     console.error(error)
   } finally {
     loading.value = false
@@ -73,7 +78,7 @@ const handleUpdatePassword = async () => {
     ElMessage.error('两次输入的密码不一致')
     return
   }
-  
+
   loading.value = true
   try {
     await updatePassword({
@@ -85,7 +90,7 @@ const handleUpdatePassword = async () => {
     authStore.logout()
     // Redirect handled by store or router guard usually, but let's force it
     window.location.reload()
-  } catch (error: any) {
+  } catch (error) {
     console.error(error)
   } finally {
     loading.value = false
@@ -97,7 +102,7 @@ const handleUpdatePassword = async () => {
   <div class="p-6 max-w-4xl mx-auto">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 transition-colors duration-300">
       <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">个人中心</h2>
-      
+
       <div class="flex flex-col md:flex-row gap-8">
         <!-- Avatar Section -->
         <div class="flex flex-col items-center space-y-4">
@@ -108,7 +113,7 @@ const handleUpdatePassword = async () => {
             :on-change="handleAvatarChange"
           >
             <div v-if="profileForm.avatar" class="relative group w-32 h-32 rounded-full overflow-hidden cursor-pointer ring-4 ring-gray-100 dark:ring-gray-700">
-              <img :src="`http://localhost:8000${profileForm.avatar}`" class="w-full h-full object-cover" />
+              <img :src="getImageUrl(profileForm.avatar)" class="w-full h-full object-cover" />
               <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <span class="text-white text-sm">更换头像</span>
               </div>
@@ -124,13 +129,13 @@ const handleUpdatePassword = async () => {
         <div class="flex-1">
           <el-form label-position="top" size="large">
             <el-form-item label="账号">
-              <el-input v-model="authStore.user.username" disabled />
+              <el-input :model-value="authStore.user?.username || ''" disabled />
             </el-form-item>
-            
+
             <el-form-item label="昵称" required>
               <el-input v-model="profileForm.nickname" placeholder="请输入昵称" />
             </el-form-item>
-            
+
             <el-form-item label="手机号">
               <el-input v-model="profileForm.phone" placeholder="请输入手机号" />
             </el-form-item>

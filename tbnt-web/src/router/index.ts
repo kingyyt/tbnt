@@ -7,6 +7,7 @@ import WorkSettingsView from '@/views/work/SettingsView.vue'
 import WorkHistoryView from '@/views/work/HistoryView.vue'
 import ProfileView from '@/views/profile/index.vue'
 import LobbyView from '@/views/lobby/index.vue'
+import FriendsView from '@/views/friends/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -40,6 +41,11 @@ const router = createRouter({
           path: 'lobby',
           name: 'lobby',
           component: LobbyView
+        },
+        {
+          path: 'friends',
+          name: 'friends',
+          component: FriendsView
         }
       ]
     },

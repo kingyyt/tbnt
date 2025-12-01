@@ -26,6 +26,12 @@ def register(user_in: user_schema.UserCreate, db: Session = Depends(get_db)):
             detail="The user with this username already exists in the system.",
         )
     
+    # Generate unique 6-digit number
+    while True:
+        number = random.randint(100000, 999999)
+        if not db.query(UserModel).filter(UserModel.number == number).first():
+            break
+
     user = UserModel(
         username=user_in.username,
         nickname=user_in.nickname,
@@ -33,7 +39,8 @@ def register(user_in: user_schema.UserCreate, db: Session = Depends(get_db)):
         phone=user_in.phone,
         role_level=user_in.role_level if user_in.role_level is not None else 5,
         hashed_password=security.get_password_hash(user_in.password),
-        chat_color=generate_random_color()
+        chat_color=generate_random_color(),
+        number=number
     )
     db.add(user)
     db.commit()

@@ -4,11 +4,12 @@ import {
   Odometer,
   Setting,
   Calendar,
-  ChatDotRound
+  ChatDotRound,
+  User
 } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 
-const props = defineProps<{
+defineProps<{
   isCollapse: boolean
 }>()
 
@@ -50,6 +51,11 @@ const activeMenu = computed(() => route.path)
     <el-menu-item index="/lobby">
       <el-icon><ChatDotRound /></el-icon>
       <template #title>大厅</template>
+    </el-menu-item>
+
+    <el-menu-item index="/friends">
+      <el-icon><User /></el-icon>
+      <template #title>好友</template>
     </el-menu-item>
   </el-menu>
 </template>

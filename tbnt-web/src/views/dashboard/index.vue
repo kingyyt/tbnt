@@ -6,6 +6,10 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, Checked, Memo, Timer, CircleCheck, RefreshLeft } from '@element-plus/icons-vue'
 
+defineOptions({
+  name: 'DashboardView'
+})
+
 const authStore = useAuthStore()
 const router = useRouter()
 const loading = ref(false)
@@ -235,7 +239,7 @@ onUnmounted(() => {
     <!-- Header Banner -->
     <div
       class="rounded-2xl p-8 text-white shadow-xl relative overflow-hidden transition-all duration-1000"
-      :class="workStatus !== 'working' ? 'bg-gray-900 border border-gray-800' : 'bg-gradient-to-br from-blue-500 to-cyan-500 shadow-blue-500/30'"
+      :class="workStatus !== 'working' ? 'bg-gray-900 border border-gray-800' : 'bg-linear-to-br from-blue-500 to-cyan-500 shadow-blue-500/30'"
     >
       <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -294,7 +298,7 @@ onUnmounted(() => {
                :status="timeLeft.isOver ? 'exception' : ''"
                :color="timeLeft.isOver ? '#ef4444' : '#ffffff'"
                :show-text="false"
-               class="!w-full"
+               class="w-full!"
              />
            </div>
         </div>

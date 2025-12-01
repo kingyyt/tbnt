@@ -7,6 +7,10 @@ import { ElMessage } from 'element-plus'
 import { User, Lock, Avatar, Phone } from '@element-plus/icons-vue'
 import ThemeSwitch from '@/components/ThemeSwitch.vue'
 
+defineOptions({
+  name: 'AuthView'
+})
+
 const router = useRouter()
 const authStore = useAuthStore()
 

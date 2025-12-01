@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
+import { useFriendStore } from '@/stores/friend'
+import { useChatStore } from '@/stores/chat'
+import { getImageUrl } from '@/utils/image'
 import { useRouter } from 'vue-router'
+import { onMounted } from 'vue'
 import {
   Fold,
   Expand,
   FullScreen,
-  SwitchButton
+  SwitchButton,
+  Bell,
+  Message
 } from '@element-plus/icons-vue'
 import ThemeSwitch from '@/components/ThemeSwitch.vue'
 import { useFullscreen } from '@vueuse/core'
@@ -19,10 +25,20 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const friendStore = useFriendStore()
+const chatStore = useChatStore()
 const router = useRouter()
 const { toggle } = useFullscreen()
 
+onMounted(() => {
+  if (authStore.token) {
+    friendStore.fetchRequests()
+    chatStore.connect()
+  }
+})
+
 const handleLogout = () => {
+  chatStore.disconnect()
   authStore.logout()
   router.push('/login')
 }
@@ -58,6 +74,32 @@ const handleLogout = () => {
         <el-icon :size="20"><FullScreen /></el-icon>
       </el-button>
 
+      <!-- Friend Requests Notification -->
+      <el-badge
+        v-if="authStore.token"
+        :value="friendStore.requests.length"
+        :hidden="friendStore.requests.length === 0"
+        class="cursor-pointer"
+        @click="router.push('/friends')"
+      >
+        <el-button circle text class="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+          <el-icon :size="20" :class="{'animate-pulse text-blue-500': friendStore.requests.length > 0}"><Bell /></el-icon>
+        </el-button>
+      </el-badge>
+
+      <!-- Chat Notification -->
+      <el-badge
+        v-if="authStore.token"
+        :value="chatStore.totalUnreadCount"
+        :hidden="chatStore.totalUnreadCount === 0"
+        class="cursor-pointer"
+        @click="router.push('/friends')"
+      >
+        <el-button circle text class="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+           <el-icon :size="20" :class="{'text-blue-500': chatStore.totalUnreadCount > 0}"><Message /></el-icon>
+        </el-button>
+      </el-badge>
+
       <!-- Theme Switch -->
       <ThemeSwitch />
 
@@ -66,7 +108,7 @@ const handleLogout = () => {
         class="flex items-center space-x-2 text-gray-700 dark:text-gray-200 ml-2 cursor-pointer hover:opacity-80 transition-opacity"
         @click="router.push('/profile')"
       >
-        <el-avatar :size="32" :src="authStore.user?.avatar ? `http://localhost:8000${authStore.user.avatar}` : ''" class="bg-blue-100 text-blue-600">
+        <el-avatar :size="32" :src="getImageUrl(authStore.user?.avatar)" class="bg-blue-100 text-blue-600">
           {{ authStore.user?.nickname?.charAt(0) || authStore.user?.username?.charAt(0) }}
         </el-avatar>
         <span class="hidden md:inline font-medium text-sm">{{ authStore.user?.nickname || authStore.user?.username }}</span>
