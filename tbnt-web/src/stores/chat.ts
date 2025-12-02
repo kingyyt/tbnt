@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useAuthStore } from './auth'
 import { ElMessage } from 'element-plus'
 import { markMessagesAsRead, getUnreadCounts } from '@/api/chat'
@@ -211,6 +211,21 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  const resetState = () => {
+    lobbyMessages.value = []
+    privateMessages.value = {}
+    unreadCounts.value = {}
+    activeChatId.value = null
+    disconnect()
+  }
+
+  // Watch for token changes (handle logout)
+  watch(() => authStore.token, (newToken) => {
+    if (!newToken) {
+      resetState()
+    }
+  })
+
   return {
     ws,
     isConnected,
@@ -229,6 +244,7 @@ export const useChatStore = defineStore('chat', () => {
     setLobbyHistory,
     prependLobbyHistory,
     prependPrivateHistory,
-    fetchUnreadCounts
+    fetchUnreadCounts,
+    resetState
   }
 })

@@ -63,6 +63,7 @@ const selectFriend = async (friendId: number) => {
   if (activeFriendId.value === friendId) return
   activeFriendId.value = friendId
   hasMoreHistory.value = true
+  isLoadingHistory.value = false
 
   // Set active chat in store
   chatStore.setActiveChat(friendId)
@@ -83,13 +84,14 @@ const scrollToBottom = async () => {
 }
 
 const fetchHistory = async (isLoadMore = false) => {
-  if (!activeFriendId.value || isLoadingHistory.value || (!hasMoreHistory.value && isLoadMore)) return
+  const targetFriendId = activeFriendId.value
+  if (!targetFriendId || isLoadingHistory.value || (!hasMoreHistory.value && isLoadMore)) return
 
   isLoadingHistory.value = true
   try {
-    const currentMsgs = chatStore.privateMessages[activeFriendId.value] || []
+    const currentMsgs = chatStore.privateMessages[targetFriendId] || []
     const skip = isLoadMore ? currentMsgs.length : 0
-    const data = await getPrivateHistory(activeFriendId.value, skip, pageSize)
+    const data = await getPrivateHistory(targetFriendId, skip, pageSize)
 
     if (Array.isArray(data)) {
       if (data.length < pageSize) {
@@ -98,14 +100,16 @@ const fetchHistory = async (isLoadMore = false) => {
 
       if (isLoadMore) {
         const currentScrollHeight = messagesContainer.value?.scrollHeight || 0
-        chatStore.prependPrivateHistory(activeFriendId.value, data)
+        chatStore.prependPrivateHistory(targetFriendId, data)
         await nextTick()
         if (messagesContainer.value) {
           messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight - currentScrollHeight
         }
       } else {
-        chatStore.setPrivateHistory(activeFriendId.value, data)
-        scrollToBottom()
+        chatStore.setPrivateHistory(targetFriendId, data)
+        if (activeFriendId.value === targetFriendId) {
+            scrollToBottom()
+        }
       }
     }
   } catch (error) {
