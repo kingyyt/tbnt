@@ -1,3 +1,4 @@
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -12,7 +13,14 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title=settings.PROJECT_NAME)
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="/Users/edric/Desktop/react/tbnt-api/data/image"), name="static")
+# Get the project root directory (tbnt-api)
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_DIR = BASE_DIR / "data" / "image"
+
+# Ensure directory exists
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Set all CORS enabled origins
 app.add_middleware(
