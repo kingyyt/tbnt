@@ -11,7 +11,7 @@ echo "📂 Starting Backend..."
 cd tbnt-api
 # Check if conda is installed and try to run with tbnt_env
 if command -v conda >/dev/null 2>&1; then
-    conda run -n tbnt_env --no-capture-output uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > ../backend.log 2>&1 &
+    conda run -n tbnt-env --no-capture-output uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > ../backend.log 2>&1 &
 else
     uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > ../backend.log 2>&1 &
 fi
