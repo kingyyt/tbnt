@@ -22,6 +22,7 @@
     "@tailwindcss/vite": "^4.1.17",
     "axios": "^1.13.2",
     "dayjs": "^1.11.19",
+    "echarts": "^6.0.0",
     "element-plus": "^2.11.8",
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.7.1",

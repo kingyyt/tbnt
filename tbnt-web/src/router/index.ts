@@ -8,6 +8,7 @@ import WorkHistoryView from '@/views/work/HistoryView.vue'
 import ProfileView from '@/views/profile/index.vue'
 import LobbyView from '@/views/lobby/index.vue'
 import FriendsView from '@/views/friends/index.vue'
+import InvestmentView from '@/views/investment/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,6 +22,11 @@ const router = createRouter({
           path: '',
           name: 'home',
           component: HomeView
+        },
+        {
+          path: 'investment',
+          name: 'investment',
+          component: InvestmentView
         },
         {
           path: 'history',

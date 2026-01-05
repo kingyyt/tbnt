@@ -57,6 +57,11 @@ const activeMenu = computed(() => route.path)
       <el-icon><User /></el-icon>
       <template #title>好友</template>
     </el-menu-item>
+
+    <el-menu-item index="/investment">
+      <el-icon><TrendCharts /></el-icon>
+      <template #title>投资项目</template>
+    </el-menu-item>
   </el-menu>
 </template>
 
